@@ -1,0 +1,92 @@
+{
+  "dashboards": [
+    {
+      "dashboard_title": "Tweet Analytics Overview",
+      "description": "Comprehensive overview of tweet activity and engagement metrics",
+      "charts": [
+        {
+          "chart_title": "Tweet Volume by Hour",
+          "viz_type": "line",
+          "query": "SELECT EXTRACT(HOUR FROM created_at) as hour, COUNT(*) as tweet_count FROM tweets.silver_tweets_view WHERE processing_date = CURRENT_DATE GROUP BY EXTRACT(HOUR FROM created_at) ORDER BY hour",
+          "metrics": ["tweet_count"],
+          "columns": ["hour"]
+        },
+        {
+          "chart_title": "Top Hashtags",
+          "viz_type": "bar",
+          "query": "SELECT hashtag, COUNT(*) as usage_count FROM tweets.silver_tweets_view CROSS JOIN UNNEST(hashtags) AS t(hashtag) WHERE processing_date = CURRENT_DATE GROUP BY hashtag ORDER BY usage_count DESC LIMIT 10",
+          "metrics": ["usage_count"],
+          "columns": ["hashtag"]
+        },
+        {
+          "chart_title": "Regional Activity",
+          "viz_type": "world_map",
+          "query": "SELECT region, COUNT(*) as tweet_count FROM tweets.silver_tweets_view WHERE processing_date = CURRENT_DATE GROUP BY region",
+          "metrics": ["tweet_count"],
+          "columns": ["region"]
+        },
+        {
+          "chart_title": "Sentiment Distribution",
+          "viz_type": "pie",
+          "query": "SELECT sentiment_category, COUNT(*) as count FROM tweets.silver_tweets_view WHERE processing_date = CURRENT_DATE GROUP BY sentiment_category",
+          "metrics": ["count"],
+          "columns": ["sentiment_category"]
+        }
+      ]
+    },
+    {
+      "dashboard_title": "User Engagement Analysis",
+      "description": "Deep dive into user behavior and engagement patterns",
+      "charts": [
+        {
+          "chart_title": "Top Users by Engagement",
+          "viz_type": "table",
+          "query": "SELECT username, display_name, followers_count, COUNT(*) as tweet_count, AVG(total_engagement) as avg_engagement FROM tweets.silver_tweets_view WHERE processing_date = CURRENT_DATE GROUP BY username, display_name, followers_count ORDER BY avg_engagement DESC LIMIT 20",
+          "metrics": ["tweet_count", "avg_engagement"],
+          "columns": ["username", "display_name", "followers_count"]
+        },
+        {
+          "chart_title": "Engagement by User Influence",
+          "viz_type": "bar",
+          "query": "SELECT CASE WHEN followers_count >= 100000 THEN 'High Influence' WHEN followers_count >= 10000 THEN 'Medium Influence' ELSE 'Low Influence' END as influence_level, AVG(total_engagement) as avg_engagement FROM tweets.silver_tweets_view WHERE processing_date = CURRENT_DATE GROUP BY CASE WHEN followers_count >= 100000 THEN 'High Influence' WHEN followers_count >= 10000 THEN 'Medium Influence' ELSE 'Low Influence' END",
+          "metrics": ["avg_engagement"],
+          "columns": ["influence_level"]
+        },
+        {
+          "chart_title": "Tweet Type Distribution",
+          "viz_type": "pie",
+          "query": "SELECT tweet_type, COUNT(*) as count FROM tweets.silver_tweets_view WHERE processing_date = CURRENT_DATE GROUP BY tweet_type",
+          "metrics": ["count"],
+          "columns": ["tweet_type"]
+        }
+      ]
+    },
+    {
+      "dashboard_title": "Real-time Trends",
+      "description": "Live trending hashtags and real-time metrics",
+      "charts": [
+        {
+          "chart_title": "Trending Hashtags (Last 24h)",
+          "viz_type": "bar",
+          "query": "SELECT hashtag, SUM(tweet_count) as total_mentions FROM tweets.popular_hashtags_view WHERE hour >= CURRENT_TIMESTAMP - INTERVAL '24' HOUR GROUP BY hashtag ORDER BY total_mentions DESC LIMIT 15",
+          "metrics": ["total_mentions"],
+          "columns": ["hashtag"]
+        },
+        {
+          "chart_title": "Language Performance",
+          "viz_type": "table",
+          "query": "SELECT language, SUM(tweet_count) as total_tweets, AVG(avg_sentiment) as overall_sentiment, AVG(avg_engagement) as overall_engagement FROM tweets.language_metrics_view WHERE hour >= CURRENT_TIMESTAMP - INTERVAL '24' HOUR GROUP BY language ORDER BY total_tweets DESC",
+          "metrics": ["total_tweets", "overall_sentiment", "overall_engagement"],
+          "columns": ["language"]
+        },
+        {
+          "chart_title": "Hourly Trending Hashtags",
+          "viz_type": "heatmap",
+          "query": "SELECT EXTRACT(HOUR FROM hour) as hour_of_day, hashtag, tweet_count FROM tweets.popular_hashtags_view WHERE hour >= CURRENT_DATE AND rank_in_hour <= 5",
+          "metrics": ["tweet_count"],
+          "columns": ["hour_of_day", "hashtag"]
+        }
+      ]
+    }
+  ]
+} 
