@@ -1,8 +1,8 @@
 # Superset configuration for Trino connection
 import os
 
-# Database connection
-SQLALCHEMY_DATABASE_URI = 'sqlite:///superset.db'
+# Database connection - use absolute path in container
+SQLALCHEMY_DATABASE_URI = 'sqlite:////app/superset_home/superset.db'
 
 # Secret key
 SECRET_KEY = os.environ.get('SUPERSET_SECRET_KEY', 'your-secret-key-here')
@@ -15,7 +15,7 @@ FEATURE_FLAGS = {
     'DASHBOARD_RBAC': True,
     'ENABLE_EXPLORE_JSON_CSRF_PROTECTION': False,
     'ENABLE_EXPLORE_DRAG_AND_DROP': True,
-    'ENABLE_DASHBOARD_NATIVE_FILTERS_SET': True,
+    'DASHBOARD_NATIVE_FILTERS_SET': True,
 }
 
 # Cache configuration

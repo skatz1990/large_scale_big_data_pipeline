@@ -83,13 +83,13 @@ services:
       - TRINO_DISCOVERY_URI=http://trino:8080
     volumes:
       - ./config/trino:/etc/trino
-      - trino-data:/var/trino/data
+      - ./trino-data:/var/trino/data
     depends_on:
       - minio
 
   # Apache Spark
   spark-master:
-    image: bitnami/spark:3.5
+    image: bitnami/spark:3.4
     container_name: spark-master
     ports:
       - "8081:8080"
@@ -104,7 +104,7 @@ services:
       - spark-data:/bitnami/spark
 
   spark-worker:
-    image: bitnami/spark:3.5
+    image: bitnami/spark:3.4
     container_name: spark-worker
     environment:
       - SPARK_MODE=worker
@@ -134,18 +134,7 @@ services:
       - superset-data:/app/superset_home
     depends_on:
       - trino
-    command: >
-      bash -c "
-        superset db upgrade &&
-        superset fab create-admin
-          --username admin
-          --firstname Superset
-          --lastname Admin
-          --email admin@superset.com
-          --password admin &&
-        superset init &&
-        superset run -p 8088 --host 0.0.0.0
-      "
+    command: /app/pythonpath/startup.sh
 
   # Data Generator (Producer)
   data-generator:
@@ -205,6 +194,5 @@ volumes:
   zookeeper-logs:
   kafka-data:
   minio-data:
-  trino-data:
   spark-data:
   superset-data: 

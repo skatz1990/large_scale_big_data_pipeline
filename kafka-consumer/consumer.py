@@ -10,6 +10,7 @@ import time
 from datetime import datetime
 from typing import Dict, Any
 import logging
+from io import BytesIO
 
 from kafka import KafkaConsumer
 from minio import Minio
@@ -62,11 +63,11 @@ class MinIOStorage:
             self.client.put_object(
                 self.bucket,
                 object_key,
-                data=tweet_json.encode("utf-8"),
+                data=BytesIO(tweet_json.encode("utf-8")),
                 length=len(tweet_json.encode("utf-8")),
                 content_type="application/json",
             )
-
+            
             logger.debug("Stored tweet %s to %s", tweet_id, object_key)
             return object_key
         except S3Error as e:
@@ -85,7 +86,7 @@ class KafkaTweetConsumer:
             auto_offset_reset="earliest",
             enable_auto_commit=True,
             auto_commit_interval_ms=1000,
-            value_deserializer=lambda x: json.loads(x.decode("utf-8")),
+            value_deserializer=lambda x: json.loads(x.decode("utf-8")) if x else None,
             key_deserializer=lambda x: x.decode("utf-8") if x else None,
             max_poll_records=500,
             fetch_max_wait_ms=500,
@@ -98,7 +99,16 @@ class KafkaTweetConsumer:
     def process_message(self, message, storage: MinIOStorage) -> None:
         """Process a single Kafka message"""
         try:
+            # Validate message value
+            if not message.value:
+                logger.warning("Received empty message, skipping")
+                return
+
             tweet = message.value
+            if not isinstance(tweet, dict):
+                logger.error("Invalid message format, expected dict, got %s", type(tweet))
+                return
+
             tweet_id = tweet.get("tweet_id", "unknown")
 
             # Extract date for partitioning
@@ -114,9 +124,7 @@ class KafkaTweetConsumer:
 
             # Store in MinIO
             object_key = storage.store_tweet(tweet, partition_date)
-
             logger.info("Processed tweet %s -> %s", tweet_id, object_key)
-
         except Exception as e:
             logger.error("Error processing message: %s", e)
             # Continue processing other messages
