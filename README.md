@@ -47,6 +47,21 @@ docker-compose up -d
 # - MinIO Console: http://localhost:9001 (minioadmin/minioadmin)
 # - Kafka UI: http://localhost:8080
 # - Trino: http://localhost:8080 (for API access)
+
+# Set up database connections in Superset (run after first startup)
+./scripts/setup_superset_databases.sh
+
+## Troubleshooting
+
+### Authentication Issues
+If you encounter authentication errors with Trino, the configuration has been set to use insecure authentication for development. This is configured in `config/trino/config.properties`.
+
+**Note**: The Trino SQLAlchemy driver requires a username even when authentication is disabled. Use `anonymous` as the username in connection strings: `trino://anonymous@trino:8080/memory/default`
+
+### Testing Database Connections
+After setup, you can test the connections in Superset SQL Lab:
+- Use the `trino_memory` database for testing
+- Try queries like `SHOW TABLES` or `SELECT * FROM test_table2`
 ```
 
 ## Data Flow
