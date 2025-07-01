@@ -23,6 +23,15 @@ A comprehensive big data application that simulates real-time Twitter activity a
 └─────────────────┘    └─────────────────┘
 ```
 
+## Current Implementation
+
+**Note**: This project currently uses Trino's memory catalog for prototyping and development. The full MinIO integration is planned for future releases.
+
+### Data Layers (Memory-Based)
+- **Bronze Layer**: Raw tweet data with full JSON structure
+- **Silver Layer**: Cleaned and processed data with derived fields
+- **Gold Layer**: Business-level aggregated metrics and KPIs
+
 ## Components
 
 1. **Data Generator (Producer)** - Simulates high-throughput tweet stream (1000+/sec)
@@ -30,7 +39,8 @@ A comprehensive big data application that simulates real-time Twitter activity a
 3. **Delta Processor (Silver Layer)** - Cleans, validates, and transforms data
 4. **Gold Layer** - Business-level aggregated tables
 5. **Apache Superset** - Visualization and BI dashboard
-6. **Containerized Deployment** - Docker Compose for local deployment
+6. **Trino Query Engine** - SQL interface for data exploration
+7. **Containerized Deployment** - Docker Compose for local deployment
 
 ## Quick Start
 
@@ -42,40 +52,132 @@ cd large_scale_big_data_pipeline
 # Start the entire pipeline
 docker-compose up -d
 
-# Access services:
-# - Superset: http://localhost:8088 (admin/admin)
-# - MinIO Console: http://localhost:9001 (minioadmin/minioadmin)
-# - Kafka UI: http://localhost:8080
-# - Trino: http://localhost:8080 (for API access)
+# Wait for services to start, then run the setup script
+./scripts/restart_setup.sh
+```
 
-# Set up database connections in Superset (run after first startup)
-./scripts/setup_superset_databases.sh
+## Access Services
+
+- **Superset**: http://localhost:8088 (admin/admin)
+- **MinIO Console**: http://localhost:9001 (minioadmin/minioadmin)
+- **Kafka UI**: http://localhost:8080
+- **Trino**: http://localhost:8080 (for API access)
+
+## Available Scripts
+
+### `scripts/restart_setup.sh`
+**Purpose**: Complete setup after Docker restart or fresh installation
+**What it does**:
+- Waits for Trino and Superset to be ready
+- Sets up database connections in Superset
+- Creates bronze, silver, and gold layer tables
+- Inserts sample data
+- Tests the setup
+
+### `scripts/setup_data_layers.sql`
+**Purpose**: SQL script that creates the complete data lake architecture
+**What it creates**:
+- Bronze layer: Raw tweet data table
+- Silver layer: Processed tweet data with derived fields
+- Gold layer: 5 aggregated business tables
+- Views: Enhanced views with business metrics and rankings
+
+### `scripts/setup_superset_databases.sh`
+**Purpose**: Legacy script for setting up database connections only
+**Note**: Use `restart_setup.sh` instead for complete setup
+
+## Data Schema
+
+### Bronze Layer (`memory.bronze.tweets`)
+Raw tweet data with fields like:
+- `tweet_id`, `text`, `created_at`
+- `hashtags`, `mentions` (arrays)
+- `retweet_count`, `like_count`, `reply_count`, `quote_count`
+- User information: `user_id`, `username`, `followers_count`
+- Sentiment and engagement metrics
+
+### Silver Layer (`memory.silver.tweets`)
+Processed data with additional fields:
+- `text_length`: Length of tweet text
+- `sentiment_category`: Categorized sentiment (positive/negative/neutral)
+- `total_engagement`: Sum of all engagement metrics
+
+### Gold Layer Tables
+1. **`popular_hashtags_by_hour`**: Trending hashtags with engagement metrics
+2. **`active_users_by_day`**: User activity and influence metrics
+3. **`tweet_volume_by_region`**: Geographic activity patterns
+4. **`tweet_metrics_by_language`**: Language performance analytics
+5. **`hourly_activity_summary`**: Overall platform activity summary
+
+## Sample Queries
+
+### Bronze Layer
+```sql
+-- Count tweets in bronze layer
+SELECT COUNT(*) FROM memory.bronze.tweets;
+
+-- View raw tweet data
+SELECT tweet_id, text, created_at, hashtags 
+FROM memory.bronze.tweets 
+LIMIT 5;
+```
+
+### Silver Layer
+```sql
+-- Analyze sentiment distribution
+SELECT sentiment_category, COUNT(*) as count
+FROM memory.silver.tweets 
+GROUP BY sentiment_category;
+
+-- Top engaging tweets
+SELECT tweet_id, text, total_engagement
+FROM memory.silver.tweets 
+ORDER BY total_engagement DESC 
+LIMIT 10;
+```
+
+### Gold Layer
+```sql
+-- Top hashtags by engagement
+SELECT hashtag, SUM(total_engagement) as total_engagement
+FROM memory.gold.popular_hashtags_by_hour
+GROUP BY hashtag
+ORDER BY total_engagement DESC;
+
+-- Regional activity
+SELECT region, SUM(tweet_count) as total_tweets
+FROM memory.gold.tweet_volume_by_region
+GROUP BY region
+ORDER BY total_tweets DESC;
+```
 
 ## Troubleshooting
 
 ### Authentication Issues
-If you encounter authentication errors with Trino, the configuration has been set to use insecure authentication for development. This is configured in `config/trino/config.properties`.
+If you encounter authentication errors with Trino:
+- The configuration uses insecure authentication for development
+- Connection string format: `trino://anonymous@trino:8080/memory/default`
+- Configuration is in `config/trino/config.properties`
 
-**Note**: The Trino SQLAlchemy driver requires a username even when authentication is disabled. Use `anonymous` as the username in connection strings: `trino://anonymous@trino:8080/memory/default`
-
-### Testing Database Connections
-After setup, you can test the connections in Superset SQL Lab:
-- Use the `trino_memory` database for testing
-- Try queries like `SHOW TABLES` or `SELECT * FROM test_table2`
+### After Docker Restart
+If you restart Docker, run:
+```bash
+./scripts/restart_setup.sh
 ```
 
-## Data Flow
+### Testing Connections
+In Superset SQL Lab:
+1. Select the `trino_memory` database
+2. Try: `SHOW SCHEMAS`
+3. Try: `SELECT COUNT(*) FROM memory.bronze.tweets`
 
-1. **Bronze Layer**: Raw JSON tweets stored in MinIO, partitioned by date
-2. **Silver Layer**: Cleaned, validated Delta Lake tables
-3. **Gold Layer**: Aggregated business metrics tables
+## Business Metrics Available
 
-## Business Metrics
-
-- Popular hashtags by hour
-- Active users by day
-- Tweet volume by region
-- Average tweet length by language
+- **Popular hashtags by hour** with engagement metrics
+- **Active users by day** with influence rankings
+- **Tweet volume by region** with sentiment analysis
+- **Language performance** with engagement averages
+- **Hourly activity summaries** with trending topics
 
 ## Technologies Used
 
@@ -85,3 +187,11 @@ After setup, you can test the connections in Superset SQL Lab:
 - **Query Engine**: Trino
 - **Visualization**: Apache Superset
 - **Containerization**: Docker, Docker Compose
+
+## Future Enhancements
+
+- [ ] Full MinIO integration with Hive metastore
+- [ ] Real-time data streaming from Kafka to Trino
+- [ ] Delta Lake table format support
+- [ ] Advanced analytics and ML integration
+- [ ] Production-ready authentication and security
