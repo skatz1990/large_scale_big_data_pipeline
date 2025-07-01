@@ -82,10 +82,6 @@ docker-compose up -d
 - Gold layer: 5 aggregated business tables
 - Views: Enhanced views with business metrics and rankings
 
-### `scripts/setup_superset_databases.sh`
-**Purpose**: Legacy script for setting up database connections only
-**Note**: Use `restart_setup.sh` instead for complete setup
-
 ## Data Schema
 
 ### Bronze Layer (`memory.bronze.tweets`)
@@ -195,3 +191,29 @@ In Superset SQL Lab:
 - [ ] Delta Lake table format support
 - [ ] Advanced analytics and ML integration
 - [ ] Production-ready authentication and security
+
+## Roadmap
+
+### Phase 1: Persistent Storage (In Progress)
+- [ ] **Hive Metastore Integration**: Complete the Hive Metastore setup with MySQL backend
+  - [ ] Fix MySQL JDBC driver loading issues in Hive container
+  - [ ] Resolve schema initialization with `-dbType mysql` parameter
+  - [ ] Ensure proper environment variable handling in Hive entrypoint
+  - [ ] Test persistent table metadata across container restarts
+- [ ] **MinIO External Tables**: Create external tables pointing to MinIO buckets
+  - [ ] Bronze layer tables on `s3a://tweets-bronze/`
+  - [ ] Silver layer tables on `s3a://tweets-silver/`
+  - [ ] Gold layer tables on `s3a://tweets-gold/*/`
+- [ ] **Automated Setup**: Create comprehensive setup script for MinIO-based pipeline
+
+### Phase 2: Production Readiness
+- [ ] **Authentication & Security**: Implement proper authentication for all services
+- [ ] **Monitoring & Logging**: Add comprehensive monitoring and centralized logging
+- [ ] **Performance Optimization**: Optimize query performance and resource usage
+- [ ] **Backup & Recovery**: Implement data backup and disaster recovery procedures
+
+### Phase 3: Advanced Features
+- [ ] **Real-time Processing**: Implement real-time data streaming from Kafka to Trino
+- [ ] **ML Integration**: Add machine learning capabilities for predictive analytics
+- [ ] **Advanced Analytics**: Implement complex business intelligence dashboards
+- [ ] **Multi-tenancy**: Support for multiple data sources and tenants
